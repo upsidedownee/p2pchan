@@ -1,7 +1,9 @@
+#!/usr/bin/env python
 import sys
 import os
 import sqlite3
 import ConfigParser
+import commands
 
 from funcs import *
 from kaishi import kaishi
@@ -33,6 +35,7 @@ class P2PChan(object):
     if identifier == 'POST':
       post = decodePostData(message)
       if not self.havePostWithGUID(post[0]):
+        logMessage("New Post!\n" + message)
         c = conn.cursor()
         c.execute('select count(*) from posts where timestamp = \'' + post[2] + '\' and file = \'' + post[8] + '\'')
         for row in c:
@@ -47,6 +50,7 @@ class P2PChan(object):
                   conn.commit()
     elif identifier == 'THREAD':
       if self.havePostWithGUID(message):
+        logMessage("New Thread!\n" + message)
         c = conn.cursor()
         c.execute('select * from posts where guid = \'' + message.replace("'", '&#39;') + '\' limit 1')
         for post in c:
@@ -66,18 +70,20 @@ class P2PChan(object):
           self.kaishi.sendData('POST', encodePostData(reply), to=peerid, bounce=False)
           i += 1
         i += 1
-      logMessage(peerid + ' has requested to receive the latest threads.  Sent ' + str(i) + ' posts.')
+      logMessage(niceip(peerid) + ' has requested to receive the latest threads.  Sent ' + str(i) + ' posts.')
     conn.close
 
   def handleAddedPeer(self, peerid):
     if peerid != self.kaishi.peerid:
-      logMessage(peerid + ' has joined the network.')
+      logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+      logMessage(niceip(peerid) + " has joined the network. " + logme)
 
   def handlePeerNickname(self, peerid, nick):
     pass
     
   def handleDroppedPeer(self, peerid):
-    logMessage(peerid + ' has dropped from the network.')
+    logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+    logMessage(niceip(peerid) + " has dropped from the network. " + logme)
   #==============================================================================
     
   def havePostWithGUID(self, guid):
@@ -183,13 +189,20 @@ if __name__=='__main__':
     from twisted.internet import reactor
     from p2pweb import P2PChanWeb
 
-    logMessage('There are currently ' + str(len(p2pchan.kaishi.peers)) + ' other users online.')
+    if len(p2pchan.kaishi.peers) != 1:
+        logMessage('There are currently ' + str(len(p2pchan.kaishi.peers)) + ' other users online.')
+    else:
+        logMessage('There is currently ' + str(len(p2pchan.kaishi.peers)) + ' other user online.')
     logMessage('Visit http://127.0.0.1:' + str(web_port) + ' to begin.')
     
     root = resource.Resource()
     root.putChild("", P2PChanWeb(p2pchan, stylesheet))
     root.putChild("manage", P2PChanWeb(p2pchan, stylesheet))
+    root.putChild("peerlist", P2PChanWeb(p2pchan, stylesheet))
+    root.putChild("cactus", P2PChanWeb(p2pchan,stylesheet))
     root.putChild("css", static.File(localFile('css')))
+    root.putChild("content", static.File(localFile('content')))
+
     site = server.Site(root)
 
     try:
