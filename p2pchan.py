@@ -8,6 +8,8 @@ import commands
 from funcs import *
 from kaishi import kaishi
 
+curl = 0           # set this to 1 if you have cURL installed (http://curl.haxx.se). It is used for text based geolocation of peers. Also the one in funcs.py
+
 class P2PChan(object):
   def __init__(self, kaishi_port, providers, postsperpage):
     self.kaishi = kaishi()
@@ -75,14 +77,20 @@ class P2PChan(object):
 
   def handleAddedPeer(self, peerid):
     if peerid != self.kaishi.peerid:
-      logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+      if curl:
+        logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+      else:
+        logme = ''
       logMessage(niceip(peerid) + " has joined the network. " + logme)
 
   def handlePeerNickname(self, peerid, nick):
     pass
     
   def handleDroppedPeer(self, peerid):
-    logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+    if curl:
+      logme = commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + peerid.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'")
+    else:
+      logme = ''
     logMessage(niceip(peerid) + " has dropped from the network. " + logme)
   #==============================================================================
     

@@ -13,7 +13,8 @@ from StringIO import StringIO
 import ntplib
 
 cactusModVersion = "0.3.1"
-usepynotify = 0    # turn this on for libnotify notifications of activity. Requires pynotify.
+usepynotify = 0    # set this to 1 for libnotify notifications of activity. Requires pynotify.
+curl = 0           # set this to 1 if you have cURL installed (http://curl.haxx.se). It is used for text based geolocation of peers. Also the one in p2pchan.py
 
 if usepynotify:
     import pynotify
@@ -458,7 +459,10 @@ def peerlist(p2pchan):
     else:
         output = "There is currently " + str(len(p2pchan.kaishi.peers)) + " other user online [<a href=\"javascript:void(0);\" onclick=\"refreshProvider()\">Refresh Peer Provider</a>]<span id=\"refreshprovider\"></span>\n<ul>\n"
     for ip in p2pchan.kaishi.peers:
-        output = output + "\n<li><a href=\"javascript:void(0)\" onclick=\"showIP('" + ip.partition(':')[0] + "')\">" + niceip(ip) + "</a> - " + commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + ip.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'") + "</li>"
+        if curl:
+            output = output + "\n<li><a href=\"javascript:void(0)\" onclick=\"showIP('" + ip.partition(':')[0] + "')\">" + niceip(ip) + "</a> - " + commands.getoutput("curl -s \"http://www.geody.com/geoip.php?ip=" + ip.partition(':')[0] + "\" | sed '/^IP:/!d;s/<[^>][^>]*>//g'") + "</li>"
+        else:
+            output = output + "\n<li><a href=\"javascript:void(0)\" onclick=\"showIP('" + ip.partition(':')[0] + "')\">" + niceip(ip) + "</a></li>"
     output = output + "</ul>\n";
     return output
 
